@@ -18,5 +18,7 @@ Uma parte importante de tudo isso é o Pluvi.On, uma estação meteorológica Op
 _An important part of all this is Pluvi.On itself, an inexpensive Open Source weather station to be spread out in as many points of the city as we can !!! That&#39;s enough talk let&#39;s see what matters:_
 
 Você pode checar neste link todas as instruções para construção do seu próprio Pluvi!
-_You can check in this link all the instructions for building your own Pluvi!
+
+_You can check in this link all the instructions for building your own Pluvi!_
+
 https://www.instructables.com/member/PluviOn/
