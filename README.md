@@ -1,4 +1,4 @@
-#Pluvi.On – Hackeando a chuva (Hacking the rain)#
+# Pluvi.On – Hackeando a chuva (Hacking the rain)
 ![Image of Pluvion](https://github.com/pluvion/pluvion.github.io/blob/master/PLUVI_v3.jpg)
  
 Hoje no Brasil, existem aproximadamente 30 milhões de brasileiros expostos ao risco de enchentes e inundações. Além disso, existe uma projeção de impacto financeiro, onde as potenciais perdas anuais podem chegar a 4 bilhões de dólares até 2030 (Fonte: Swiss Re)
@@ -18,3 +18,5 @@ Uma parte importante de tudo isso é o Pluvi.On, uma estação meteorológica Op
 _An important part of all this is Pluvi.On itself, an inexpensive Open Source weather station to be spread out in as many points of the city as we can !!! That&#39;s enough talk let&#39;s see what matters:_
 
 Você pode checar neste link todas as instruções para construção do seu próprio Pluvi!
+_You can check in this link all the instructions for building your own Pluvi!
+https://www.instructables.com/member/PluviOn/
