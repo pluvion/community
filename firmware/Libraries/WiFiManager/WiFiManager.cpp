@@ -27,6 +27,10 @@ const String DIR_STATION_TIME_TO_RESET  = "/stt/ttr";
 const String DIR_STATION_NAME           = "/stt/name";
 const String DIR_FIRMWARE_VERSION       = "/fmwver";
 
+String fmwver = "";
+String stationID = "PluviOn_";
+String macAddr = "";
+
 WiFiManagerParameter::WiFiManagerParameter(const char *custom) {
   _id = NULL;
   _placeholder = NULL;
@@ -140,6 +144,14 @@ void WiFiManager::setupConfigPortal() {
   server->begin(); // Web server start
   DEBUG_WM(F("HTTP server started"));
 
+  // Get firmware version
+  fmwver = getFirmwareVersion();
+
+  // Set station Id
+  stationID += ESP.getChipId();
+
+  // Get Station MAC Address
+  macAddr = WiFi.softAPmacAddress();
 }
 
 boolean WiFiManager::autoConnect() {
@@ -398,6 +410,8 @@ void WiFiManager::handleRoot() {
   String form = FPSTR(HTTP_FORM_CONFIG);
   form.replace("{vol}", vol);
   form.replace("{name}", name);
+  form.replace("{sttid}", stationID);
+
   page += form;
 
   // Setup the script
@@ -405,7 +419,11 @@ void WiFiManager::handleRoot() {
   script.replace("{RESET_TIME}", RESET_TIME);
   page += script;
 
-  page += FPSTR(HTTP_END);
+  String footer = FPSTR(HTTP_END);
+  footer.replace("{fmwver}", fmwver);
+  footer.replace("{sttid}", stationID);
+  footer.replace("{wifimac}", macAddr);
+  page += footer;
 
   DEBUG_WM("\n\nPAGE:");
   DEBUG_WM(page);
@@ -448,7 +466,11 @@ void WiFiManager::handleSavePluviOnConfig() {
   page.replace("{ttr}",  server->arg("ttr"));
   page.replace("{name}", server->arg("name"));
 
-  page += FPSTR(HTTP_END);
+  String footer = FPSTR(HTTP_END);
+  footer.replace("{fmwver}", fmwver);
+  footer.replace("{sttid}", stationID);
+  footer.replace("{wifimac}", macAddr);
+  page += footer;
 
   server->send(200, "text/html", page);
 }
@@ -1127,7 +1149,11 @@ void WiFiManager::handleWifi(boolean scan) {
   page += FPSTR(HTTP_FORM_END);
   page += FPSTR(HTTP_SCAN_LINK);
 
-  page += FPSTR(HTTP_END);
+  String footer = FPSTR(HTTP_END);
+  footer.replace("{fmwver}", fmwver);
+  footer.replace("{sttid}", stationID);
+  footer.replace("{wifimac}", macAddr);
+  page += footer;
 
   server->send(200, "text/html", page);
 
@@ -1181,23 +1207,19 @@ void WiFiManager::handleWifiSave() {
   String lon = getLongitude();
   String vol = getBucketVolume();
   String ttr = getTimeToReset();
-  String stationID = "PluviOn_";
-        stationID += ESP.getChipId();
   String stationName = getStationName();
-  String macAddr = WiFi.softAPmacAddress();
-  String fmwver = getFirmwareVersion();
 
   String summary = FPSTR(HTTP_SAVED);
-  summary.replace("{id}", stationID);
+  summary.replace("{sttid}", stationID);
   summary.replace("{name}", stationName);
   summary.replace("{lat}", lat);
   summary.replace("{lon}", lon);
   summary.replace("{vol}", vol);
   summary.replace("{ttr}", ttr);
   summary.replace("{wifi}", _ssid);
-  summary.replace("{wifimac}", macAddr);
   summary.replace("{fmwver}", fmwver);
-  
+  summary.replace("{wifimac}", macAddr);
+
   DEBUG_WM(F("\n\nSUMMARY"));
   DEBUG_WM(F("===========================================\n"));
   DEBUG_WM(F("Station ID:"));
@@ -1219,8 +1241,13 @@ void WiFiManager::handleWifiSave() {
   page += FPSTR(HTTP_STYLE);
   page += _customHeadElement;
   page += FPSTR(HTTP_HEAD_END);
-  page += summary;
-  page += FPSTR(HTTP_END);
+  page += summary;  
+
+  String footer = FPSTR(HTTP_END);
+  footer.replace("{fmwver}", fmwver);
+  footer.replace("{sttid}", stationID);
+  footer.replace("{wifimac}", macAddr);
+  page += footer;
 
   server->send(200, "text/html", page);
 
@@ -1284,7 +1311,12 @@ void WiFiManager::handleInfo() {
   page += WiFi.macAddress();
   page += F("</dd>");
   page += F("</dl>");
-  page += FPSTR(HTTP_END);
+
+  String footer = FPSTR(HTTP_END);
+  footer.replace("{fmwver}", fmwver);
+  footer.replace("{sttid}", stationID);
+  footer.replace("{wifimac}", macAddr);
+  page += footer;
 
   server->send(200, "text/html", page);
 
@@ -1302,7 +1334,12 @@ void WiFiManager::handleReset() {
   page += _customHeadElement;
   page += FPSTR(HTTP_HEAD_END);
   page += F("Sistema irá reiniciar em alguns segundos.");
-  page += FPSTR(HTTP_END);
+
+  String footer = FPSTR(HTTP_END);
+  footer.replace("{fmwver}", fmwver);
+  footer.replace("{sttid}", stationID);
+  footer.replace("{wifimac}", macAddr);
+  page += footer;
   
   server->send(200, "text/html", page);
 

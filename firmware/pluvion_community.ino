@@ -2,7 +2,7 @@
  * Pluvi.On WiFi Community Firmware
  * 
  *       FILE: pluvion_community_firwmware.ino
- *    VERSION: 0.0.1.C
+ *    VERSION: 0.0.2.C
  *    LICENSE: Creative Commons 4
  *    AUTHORS:
  *             Pedro Godoy <pedro@pluvion.com.br>
@@ -12,7 +12,20 @@
  *             https://www.pluvion.com.br
  */
 
-// Libraries    
+// Insert your key here
+const String PLUVION_KEY = "<YOUR KEY>";
+
+/************************************************************
+ * 
+ * 
+ * 
+ * YOU DON'T NEED TO CHANGE ANYTHING BELOW THIS POINT
+ * 
+ * 
+ * 
+ ***********************************************************/
+
+// Libraries
 #include <FS.h> // FS must be the first
 #include <DHT.h>
 #include <ESP8266WiFi.h>
@@ -63,60 +76,59 @@ ADC_MODE(ADC_VCC);
  */
 
 // Configured at setup
-float  PLV_STATION_BUCKET_VOLUME              = 3.22; // Bucket Calibrated Volume in ml
-String STATION_LONGITUDE                      = "";
-String STATION_LATITUDE                       = "";
-String STATION_NAME                           = "PluviOn";
-String STATION_ID                             = "";
+float PLV_STATION_BUCKET_VOLUME = 3.22; // Bucket Calibrated Volume in ml
+String STATION_LONGITUDE = "";
+String STATION_LATITUDE = "";
+String STATION_NAME = "PluviOn";
+String STATION_ID = "";
 
-const String STATION_ID_PREFIX                = "PluviOn_";
-const String FIRMWARE_VERSION                 = "0.0.1.C";
+const String STATION_ID_PREFIX = "PluviOn_";
+const String FIRMWARE_VERSION = "0.0.2.C";
 
 /**
  * File system directories and variables
  */
-const String DIR_SYSTEM_DATA                  = "/sys";
-const String DIR_WEATHER_DATA                 = "/weather";
-const String DIR_MESSAGE_COUNTER              = "/msgcnt";
-const String DIR_FIRMWARE_VERSION             = "/fmwver";
-const String DIR_STATION_ID                   = "/stt/id";
-const String DIR_STATION_NAME                 = "/stt/name";
-const String DIR_STATION_BUCKET_VOL           = "/stt/bucketvol";
-const String DIR_STATION_TIME_TO_RESET        = "/stt/ttr";
-const String DIR_STATION_TIME                 = "/stt/time";
-const String DIR_STATION_LATITUDE             = "/stt/lat";
-const String DIR_STATION_LONGITUDE            = "/stt/lon";
-const String FIELD_SEPARATOR                  = "|";
+const String DIR_SYSTEM_DATA = "/sys";
+const String DIR_WEATHER_DATA = "/weather";
+const String DIR_MESSAGE_COUNTER = "/msgcnt";
+const String DIR_FIRMWARE_VERSION = "/fmwver";
+const String DIR_STATION_ID = "/stt/id";
+const String DIR_STATION_NAME = "/stt/name";
+const String DIR_STATION_BUCKET_VOL = "/stt/bucketvol";
+const String DIR_STATION_TIME_TO_RESET = "/stt/ttr";
+const String DIR_STATION_TIME = "/stt/time";
+const String DIR_STATION_LATITUDE = "/stt/lat";
+const String DIR_STATION_LONGITUDE = "/stt/lon";
+const String FIELD_SEPARATOR = "|";
 
 // Station time and reset timer
-const unsigned long DEFAULT_RESET_PERIOD      = 86400000; // Default reset period 24 hours in ms = 86400000
-unsigned long resetCicleCounter               = 0;
-unsigned long resetStartTime                  = 0;
-unsigned long TIME_TO_RESET                   = 0; // Time left until the next reset
-unsigned long STATION_TIME                    = 0; // Station time
-boolean resetFlag                             = false; //
-
+const int DEFAULT_RESET_PERIOD = 86400; // Default reset period 24 hours in seconds = 86400
+unsigned long resetCicleCounter = 0;
+int resetStartTime = 0;
+int TIME_TO_RESET = 0;     // Time left until the next reset
+int STATION_TIME = 0;      // Station time
+boolean resetFlag = false; //
 
 // Tipping Bucket Configurations
-const float CONTRIBUTION_AREA                 = 7797.0; // Contribuition area in mm2
-volatile int tipCounter                       = 0; // Store the bucket tip counter
-volatile float rainVolume                     = 0; // The rain accumulated volume
+const float CONTRIBUTION_AREA = 7797.0; // Contribuition area in mm2
+volatile int tipCounter = 0;            // Store the bucket tip counter
+volatile float rainVolume = 0;          // The rain accumulated volume
 
 // State Control Variables
-unsigned long lastTipBucketReadingInMillis    = 0; // The last tip bucket (hall sensor) reading time in ms
+unsigned long lastTipBucketReadingInMillis = 0;    // The last tip bucket (hall sensor) reading time in ms
 unsigned long currentTipBucketReadingInMillis = 0; // Current tip bucket reading in millis
-volatile float lastTipCount                   = 0; // The last tip count total
-volatile int realTipCount                     = 0; // Checked tip counter
+volatile float lastTipCount = 0;                   // The last tip count total
+volatile int realTipCount = 0;                     // Checked tip counter
 
 // DHT22 Sensor Variables and initialization
-#define DHT_TYPE DHT22 // DHT 22  (AM2302)
-volatile float humidity                       = 0; // Read air humidity in %
-volatile float temperature                    = 0; // Read temperature as Celsius
-volatile float computedHeatIndex              = 0; // Compute heat index in Celsius
+#define DHT_TYPE DHT22                // DHT 22  (AM2302)
+volatile float humidity = 0;          // Read air humidity in %
+volatile float temperature = 0;       // Read temperature as Celsius
+volatile float computedHeatIndex = 0; // Compute heat index in Celsius
 
 // State Control Variables
-unsigned long lastDHTReadingInMillis          = 0; // The last DHT reading time in ms
-unsigned long currentDHTReadingInMillis       = 0; // Current DHT reading in millis
+unsigned long lastDHTReadingInMillis = 0;    // The last DHT reading time in ms
+unsigned long currentDHTReadingInMillis = 0; // Current DHT reading in millis
 
 // Initialize DHT sensor
 DHT dht(PIN_DHT, DHT_TYPE, 20);
@@ -159,17 +171,18 @@ WiFiManager wifiManager;
 /**
  * Pluvi.On API
  */
-const char* PLUVION_API_SERVER_ADDR        = "community.pluvion.com.br"; // Prod
-const char* PLUVION_API_RESOURCE_WEATHER   = "/weather";
-const int   PLUVION_API_SERVER_PORT        = 443;
-const int   PLUVION_API_SERVER_REQ_TIMEOUT = 5000; // Request Timeout (ms)
-const char* PLUVION_API_CERT_FINGERPRINT   = "d51b47c0781990536dd9cfa55de5c2f2932301ad";
+const char *PLUVION_API_SERVER_ADDR = "api.community.pluvion.com.br";
+const char *PLUVION_API_RESOURCE_WEATHER = "/weather";
+const int PLUVION_API_SERVER_PORT = 443;
+const int PLUVION_API_SERVER_REQ_TIMEOUT = 5000; // Request Timeout (ms)
+const char *PLUVION_API_CERT_FINGERPRINT = "5927C546989FE7761C626D8AE5959D0757A33963";
 
 // Pluvi.On Media Types Standard
-const char* HTTP_HEADER_ACCEPT             = "Accept: application/vnd.community.pluvion.com.br.v1.text";
-const char* HTTP_HEADER_CONTENT_TYPE       = "Content-Type: application/vnd.community.pluvion.com.br.v1.text";
-const char* HTTP_HEADER_EOL                = "\r\n";
-const char* HTTP_HEADER_USER_AGENT         = "User-Agent: Pluvi.On Community Station/1.0";
+const String HTTP_HEADER_PLUVION_KEY = "X-PluviOn-Key: " + PLUVION_KEY;
+const char *HTTP_HEADER_ACCEPT = "Accept: application/vnd.community.pluvion.com.br.v1.text";
+const char *HTTP_HEADER_CONTENT_TYPE = "Content-Type: application/vnd.community.pluvion.com.br.v1.text";
+const char *HTTP_HEADER_EOL = "\r\n";
+const char *HTTP_HEADER_USER_AGENT = "User-Agent: Pluvi.On Community Station/1.0";
 
 // Send offline messages
 unsigned long currentBatchReadingInMillis = 0;
@@ -178,7 +191,8 @@ unsigned long lastBatchReadingInMillis = 0;
 /**
  * Print system environment status to serial
  */
-void printSystemEnvironmentStatus() {
+void printSystemEnvironmentStatus()
+{
 
     PLV_DEBUG_HEADER(F("SYSTEM ENVIRONMENT STATUS"));
 
@@ -235,95 +249,143 @@ void printSystemEnvironmentStatus() {
 /**
  * Print system configurations to serial monitor
  */
-void printSystemConfigurations() {
+void printSystemConfigurations()
+{
 
     PLV_DEBUG_HEADER(F("SYSTEM CONFIGURATIONS"));
 
     PLV_DEBUG(F("// Station General Configuration"));
-    PLV_DEBUG_(F("ID:                                      ")); PLV_DEBUG(STATION_ID);
-    PLV_DEBUG_(F("Name:                                    ")); PLV_DEBUG(STATION_NAME);
-    PLV_DEBUG_(F("Latitude:                                ")); PLV_DEBUG(STATION_LATITUDE);
-    PLV_DEBUG_(F("Longitude:                               ")); PLV_DEBUG(STATION_LONGITUDE);
-    PLV_DEBUG_(F("Bucket Volume (ml):                      ")); PLV_DEBUG(PLV_STATION_BUCKET_VOLUME);
-    PLV_DEBUG_(F("Contribution Area (mm2):                 ")); PLV_DEBUG(CONTRIBUTION_AREA);
-    PLV_DEBUG_(F("Firmware Version:                        ")); PLV_DEBUG(FIRMWARE_VERSION);
+    PLV_DEBUG_(F("ID:                                      "));
+    PLV_DEBUG(STATION_ID);
+    PLV_DEBUG_(F("Name:                                    "));
+    PLV_DEBUG(STATION_NAME);
+    PLV_DEBUG_(F("Latitude:                                "));
+    PLV_DEBUG(STATION_LATITUDE);
+    PLV_DEBUG_(F("Longitude:                               "));
+    PLV_DEBUG(STATION_LONGITUDE);
+    PLV_DEBUG_(F("Bucket Volume (ml):                      "));
+    PLV_DEBUG(PLV_STATION_BUCKET_VOLUME);
+    PLV_DEBUG_(F("Contribution Area (mm2):                 "));
+    PLV_DEBUG(CONTRIBUTION_AREA);
+    PLV_DEBUG_(F("Firmware Version:                        "));
+    PLV_DEBUG(FIRMWARE_VERSION);
 
     PLV_DEBUG(F("// Pluvi.On API"));
-    PLV_DEBUG_(F("API Server Address:                      ")); PLV_DEBUG(PLUVION_API_SERVER_ADDR);
-    PLV_DEBUG_(F("API Server Port:                         ")); PLV_DEBUG(PLUVION_API_SERVER_PORT);
-    PLV_DEBUG_(F("API Server SSL Certificate Fingerprint:  ")); PLV_DEBUG(PLUVION_API_CERT_FINGERPRINT);
-    PLV_DEBUG_(F("API Server Request Timeout Limit (ms):   ")); PLV_DEBUG(PLUVION_API_SERVER_REQ_TIMEOUT);
+    PLV_DEBUG_(F("API Server Address:                      "));
+    PLV_DEBUG(PLUVION_API_SERVER_ADDR);
+    PLV_DEBUG_(F("API Server Port:                         "));
+    PLV_DEBUG(PLUVION_API_SERVER_PORT);
+    PLV_DEBUG_(F("API Server SSL Certificate Fingerprint:  "));
+    PLV_DEBUG(PLUVION_API_CERT_FINGERPRINT);
+    PLV_DEBUG_(F("API Server Request Timeout Limit (ms):   "));
+    PLV_DEBUG(PLUVION_API_SERVER_REQ_TIMEOUT);
     PLV_DEBUG(F("API Server Resources in use:              "));
-    PLV_DEBUG_(F(" - ")); PLV_DEBUG(PLUVION_API_RESOURCE_WEATHER);
+    PLV_DEBUG_(F(" - "));
+    PLV_DEBUG(PLUVION_API_RESOURCE_WEATHER);
 
     PLV_DEBUG(F("// HTTP Client Configurations"));
-    PLV_DEBUG_(F("HTTP Header                              ")); PLV_DEBUG(HTTP_HEADER_USER_AGENT);
-    PLV_DEBUG_(F("HTTP Header                              ")); PLV_DEBUG(HTTP_HEADER_ACCEPT);
-    PLV_DEBUG_(F("HTTP Header                              ")); PLV_DEBUG(HTTP_HEADER_CONTENT_TYPE);
+    PLV_DEBUG_(F("HTTP Header                              "));
+    PLV_DEBUG(HTTP_HEADER_USER_AGENT);
+    PLV_DEBUG_(F("HTTP Header                              "));
+    PLV_DEBUG(HTTP_HEADER_ACCEPT);
+    PLV_DEBUG_(F("HTTP Header                              "));
+    PLV_DEBUG(HTTP_HEADER_CONTENT_TYPE);
 
     PLV_DEBUG(F("// File System Directories"));
-    PLV_DEBUG_(F("System Data Directory:                   ")); PLV_DEBUG(DIR_SYSTEM_DATA);
-    PLV_DEBUG_(F("Weather Data Directory :                 ")); PLV_DEBUG(DIR_WEATHER_DATA);
-    PLV_DEBUG_(F("Message Counter Directory:               ")); PLV_DEBUG(DIR_MESSAGE_COUNTER);
-    PLV_DEBUG_(F("Station ID Directory:                    ")); PLV_DEBUG(DIR_STATION_ID);
-    PLV_DEBUG_(F("Station Name Directory:                  ")); PLV_DEBUG(DIR_STATION_NAME);
-    PLV_DEBUG_(F("Station Bucket Volume Directory:         ")); PLV_DEBUG(DIR_STATION_BUCKET_VOL);
-    PLV_DEBUG_(F("Station Latitude Directory:              ")); PLV_DEBUG(DIR_STATION_LATITUDE);
-    PLV_DEBUG_(F("Station Longitude Directory:             ")); PLV_DEBUG(DIR_STATION_LONGITUDE);
-    PLV_DEBUG_(F("Message Field Separator:                 ")); PLV_DEBUG(FIELD_SEPARATOR);
+    PLV_DEBUG_(F("System Data Directory:                   "));
+    PLV_DEBUG(DIR_SYSTEM_DATA);
+    PLV_DEBUG_(F("Weather Data Directory :                 "));
+    PLV_DEBUG(DIR_WEATHER_DATA);
+    PLV_DEBUG_(F("Message Counter Directory:               "));
+    PLV_DEBUG(DIR_MESSAGE_COUNTER);
+    PLV_DEBUG_(F("Station ID Directory:                    "));
+    PLV_DEBUG(DIR_STATION_ID);
+    PLV_DEBUG_(F("Station Name Directory:                  "));
+    PLV_DEBUG(DIR_STATION_NAME);
+    PLV_DEBUG_(F("Station Bucket Volume Directory:         "));
+    PLV_DEBUG(DIR_STATION_BUCKET_VOL);
+    PLV_DEBUG_(F("Station Latitude Directory:              "));
+    PLV_DEBUG(DIR_STATION_LATITUDE);
+    PLV_DEBUG_(F("Station Longitude Directory:             "));
+    PLV_DEBUG(DIR_STATION_LONGITUDE);
+    PLV_DEBUG_(F("Message Field Separator:                 "));
+    PLV_DEBUG(FIELD_SEPARATOR);
 
     PLV_DEBUG(F("// DHT Sensor Configuration"));
-    PLV_DEBUG_(F("DHT Sensor PIN:                          ")); PLV_DEBUG(PIN_DHT);
-    PLV_DEBUG_(F("DHT Sensor Type:                         ")); PLV_DEBUG(DHT_TYPE);
-    PLV_DEBUG_(F("DHT Sensor Reading Delay (ms):           ")); PLV_DEBUG(DHT_SENSOR_READING_DELAY);
-    PLV_DEBUG_(F("DHT Sensor Reading Retry Attempts Limit: ")); PLV_DEBUG(DHT_SENSOR_READING_FAILURE_ATTEMPTS_LIMIT);
-    PLV_DEBUG_(F("DHT Sensor Reading Retry Interval (ms):  ")); PLV_DEBUG(DHT_SENSOR_READING_FAILURE_DELAY);
+    PLV_DEBUG_(F("DHT Sensor PIN:                          "));
+    PLV_DEBUG(PIN_DHT);
+    PLV_DEBUG_(F("DHT Sensor Type:                         "));
+    PLV_DEBUG(DHT_TYPE);
+    PLV_DEBUG_(F("DHT Sensor Reading Delay (ms):           "));
+    PLV_DEBUG(DHT_SENSOR_READING_DELAY);
+    PLV_DEBUG_(F("DHT Sensor Reading Retry Attempts Limit: "));
+    PLV_DEBUG(DHT_SENSOR_READING_FAILURE_ATTEMPTS_LIMIT);
+    PLV_DEBUG_(F("DHT Sensor Reading Retry Interval (ms):  "));
+    PLV_DEBUG(DHT_SENSOR_READING_FAILURE_DELAY);
 
     PLV_DEBUG(F("// Hall Sensor Configuration"));
-    PLV_DEBUG_(F("Hall Sensor PIN:                         ")); PLV_DEBUG(PIN_HALL);
-    PLV_DEBUG_(F("Hall Sensor Debouncing Delay (ms):       ")); PLV_DEBUG(DELAY_HALL_SENSOR_DEBOUNCING);
-    PLV_DEBUG_(F("Power Off PIN:                           ")); PLV_DEBUG(PIN_POWER_OFF);
+    PLV_DEBUG_(F("Hall Sensor PIN:                         "));
+    PLV_DEBUG(PIN_HALL);
+    PLV_DEBUG_(F("Hall Sensor Debouncing Delay (ms):       "));
+    PLV_DEBUG(DELAY_HALL_SENSOR_DEBOUNCING);
+    PLV_DEBUG_(F("Power Off PIN:                           "));
+    PLV_DEBUG(PIN_POWER_OFF);
 }
 
 /**
  * Print the latest system weather info to serial
  */
-void printCurrentWeatherData() {
+void printCurrentWeatherData()
+{
 
     PLV_DEBUG_HEADER(F("WEATHER DATA"));
 
     PLV_DEBUG(F("// Rain Info"));
-    PLV_DEBUG_(F("Tip count:                               ")); PLV_DEBUG(realTipCount);
-    PLV_DEBUG_(F("Rain volume:                             ")); PLV_DEBUG_(rainVolume); PLV_DEBUG(F(" mm"));
+    PLV_DEBUG_(F("Tip count:                               "));
+    PLV_DEBUG(realTipCount);
+    PLV_DEBUG_(F("Rain volume:                             "));
+    PLV_DEBUG_(rainVolume);
+    PLV_DEBUG(F(" mm"));
     PLV_DEBUG(F("// Weather Info"));
-    PLV_DEBUG_(F("Humidity:                                ")); PLV_DEBUG_(humidity); PLV_DEBUG(F(" %"));
-    PLV_DEBUG_(F("Temperature:                             ")); PLV_DEBUG_(temperature); PLV_DEBUG(F(" C"));
-    PLV_DEBUG_(F(" Heat index:                             ")); PLV_DEBUG_(computedHeatIndex); PLV_DEBUG(F(" C"));
+    PLV_DEBUG_(F("Humidity:                                "));
+    PLV_DEBUG_(humidity);
+    PLV_DEBUG(F(" %"));
+    PLV_DEBUG_(F("Temperature:                             "));
+    PLV_DEBUG_(temperature);
+    PLV_DEBUG(F(" C"));
+    PLV_DEBUG_(F(" Heat index:                             "));
+    PLV_DEBUG_(computedHeatIndex);
+    PLV_DEBUG(F(" C"));
 }
 
 /**
  * Print system environment status to serial
  */
-void printSystemWiFiStatus() {
+void printSystemWiFiStatus()
+{
 
     PLV_DEBUG_HEADER(F("SYSTEM WIFI STATUS"));
 
     PLV_DEBUG_(F("Status:                                "));
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
         PLV_DEBUG(F("CONNECTED - Wi-Fi connection successful established."));
-
-    } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
+    }
+    else if (WiFi.status() == WL_NO_SSID_AVAIL)
+    {
         PLV_DEBUG(F("NO SSID AVAILABLE - Configured SSID cannot be reached."));
-
-    } else if (WiFi.status() == WL_CONNECT_FAILED) {
+    }
+    else if (WiFi.status() == WL_CONNECT_FAILED)
+    {
         PLV_DEBUG(F("CONNECT FAILED - Password is incorrect."));
-
-    } else if (WiFi.status() == WL_IDLE_STATUS) {
+    }
+    else if (WiFi.status() == WL_IDLE_STATUS)
+    {
         PLV_DEBUG(F("IDLE STATUS - Wi-Fi is in process of changing between statuses."));
-
-    } else if (WiFi.status() == WL_DISCONNECTED) {
+    }
+    else if (WiFi.status() == WL_DISCONNECTED)
+    {
         PLV_DEBUG(F("DISCONNECTED - Wi-Fi module is not configured in station mode."));
-
     }
 
     PLV_DEBUG_(F("SSID:                                  "));
@@ -354,47 +416,56 @@ void printSystemWiFiStatus() {
 /**
  * Send all offline messages
  */
-void sendOfflineMessages() {
+void sendOfflineMessages()
+{
 
     currentBatchReadingInMillis = millis();
 
     // Check if the configured delay has passed
-    if ((currentBatchReadingInMillis - lastBatchReadingInMillis) >= SEND_OFFLINE_MESSAGES_DELAY) {
+    if ((currentBatchReadingInMillis - lastBatchReadingInMillis) >= SEND_OFFLINE_MESSAGES_DELAY)
+    {
 
         // Mounts SPIFFS file system
-        if (!SPIFFS.begin()) {
+        if (!SPIFFS.begin())
+        {
             PLV_DEBUG(F("FATAL: Error mounting SPIFFS file system."));
         }
 
         Dir dir = SPIFFS.openDir(DIR_WEATHER_DATA);
         File f;
 
-        if (dir.next()) {
+        if (dir.next())
+        {
 
             PLV_DEBUG_HEADER(F("SENDING OFFLINE MESSAGES"));
 
             PLV_DEBUG_(F("FILE NAME: "));
             PLV_DEBUG(dir.fileName());
-    
+
             f = dir.openFile("r");
 
             // Reads the file content and print to Serial monitor
-            if(f.available()) {
+            if (f.available())
+            {
                 String line = f.readStringUntil('\n');
                 int messageID = dir.fileName().substring(DIR_WEATHER_DATA.length() + 1).toInt();
-                String message  = line;
-                       message += FIELD_SEPARATOR + "off";
+                int lastChar = line.length() - 1;
+                String message = line.substring(0, line.length() - 1);
+                message += FIELD_SEPARATOR + "off";
 
-                PLV_DEBUG_(F("Line:       ")); PLV_DEBUG(line);
-                PLV_DEBUG_(F("messageID:  ")); PLV_DEBUG(messageID);
-                PLV_DEBUG_(F("message:    ")); PLV_DEBUG(message);
+                PLV_DEBUG_(F("Line:       "));
+                PLV_DEBUG(line);
+                PLV_DEBUG_(F("messageID:  "));
+                PLV_DEBUG(messageID);
+                PLV_DEBUG_(F("message:    "));
+                PLV_DEBUG(message);
 
                 sendMessage(messageID, message);
             }
-            
+
             // Close file
             f.close();
-            
+
             lastBatchReadingInMillis = currentBatchReadingInMillis;
         }
     }
@@ -403,12 +474,14 @@ void sendOfflineMessages() {
 /**
  * Print the current file system status
  */
-void printFileSystemStatus() {
+void printFileSystemStatus()
+{
 
     PLV_DEBUG_HEADER(F("FILE SYSTEM STATUS"));
 
     // Mounts SPIFFS file system
-    if (!SPIFFS.begin()) {
+    if (!SPIFFS.begin())
+    {
         PLV_DEBUG(F("printFileSystemStatus() - FATAL! Error mounting SPIFFS file system!"));
     }
 
@@ -475,7 +548,8 @@ void printFileSystemStatus() {
 /**
  * Print the system status
  */
-void printSystemStatus() {
+void printSystemStatus()
+{
 
     // Print System Configuration
     printSystemConfigurations();
@@ -499,7 +573,8 @@ void printSystemStatus() {
 /**
  * Print the serial available commands
  */
-void printCommands() {
+void printCommands()
+{
 
     PLV_DEBUG_HEADER(F("SYSTEM AVALIABLE COMMANDS"));
 
@@ -526,10 +601,12 @@ void printCommands() {
 /**
  * Get the current system information
  */
-void getSystemInformation() {
+void getSystemInformation()
+{
 
     // Mounts SPIFFS file system
-    if (!SPIFFS.begin()) {
+    if (!SPIFFS.begin())
+    {
         PLV_DEBUG(F("getSystemInformation() - FATAL! Error mounting SPIFFS file system!"));
     }
 
@@ -596,12 +673,14 @@ void getSystemInformation() {
 /**
  * Dump all data in the local file to serial
  */
-void dump() {
+void dump()
+{
 
     PLV_DEBUG_HEADER(F("DUMP WEATHER DATA TO SERIAL"));
 
     // Mounts SPIFFS file system
-    if (!SPIFFS.begin()) {
+    if (!SPIFFS.begin())
+    {
         PLV_DEBUG(F("FATAL! Error mounting SPIFFS file system."));
     }
 
@@ -611,7 +690,8 @@ void dump() {
     File f;
 
     // Read all files
-    while (dir.next()) {
+    while (dir.next())
+    {
 
         PLV_DEBUG_(F("File name: "));
         PLV_DEBUG(dir.fileName());
@@ -620,7 +700,8 @@ void dump() {
         f = dir.openFile("r");
 
         // Reads the file content and print to Serial monitor
-        while (f.available()) {
+        while (f.available())
+        {
             String line = f.readStringUntil('\n');
             PLV_DEBUG(line);
         }
@@ -633,7 +714,8 @@ void dump() {
 /**
  * Perform a full system reset
  */
-void fullReset() {
+void fullReset()
+{
 
     PLV_DEBUG_HEADER(F("\n\n\nFULL SYSTEM RESET"));
 
@@ -656,7 +738,8 @@ void fullReset() {
 /**
  * Init all system configurations
  */
-void initSystem(){
+void initSystem()
+{
 
     // Get Station ID from file system or create the file with
     initStationID();
@@ -686,13 +769,15 @@ void initSystem(){
 /**
  * Delete weather data from local filesystem
  */
-void deleteWeatherData() {
+void deleteWeatherData()
+{
 
     PLV_DEBUG_HEADER(F("DELETE WEATHER DATA"));
 
     // Mounts SPIFFS file system
-    if (!SPIFFS.begin()) {
-    PLV_DEBUG(F("deleteWeatherData() - FATAL! Error mounting SPIFFS file system!"));
+    if (!SPIFFS.begin())
+    {
+        PLV_DEBUG(F("deleteWeatherData() - FATAL! Error mounting SPIFFS file system!"));
     }
 
     PLV_DEBUG_(F("Removing files from ("));
@@ -700,11 +785,13 @@ void deleteWeatherData() {
     PLV_DEBUG(F(") directory..."));
 
     // Delete weather data dir
-    if (SPIFFS.remove(DIR_WEATHER_DATA)) {
+    if (SPIFFS.remove(DIR_WEATHER_DATA))
+    {
 
         PLV_DEBUG(F("Weather data removed successfully."));
-
-    } else {
+    }
+    else
+    {
 
         PLV_DEBUG(F("ERROR! Weather data NOT removed."));
     }
@@ -713,77 +800,90 @@ void deleteWeatherData() {
 /**
  * Read Serial Commands
  */
-void readSerialCommands() {
+void readSerialCommands()
+{
 
     // Holds Serial Monitor commands
     String serialCommand = "";
 
     // Serial availability
-    if (Serial.available()) {
+    if (Serial.available())
+    {
 
-    // Read the incoming command
-    serialCommand = Serial.readString();
-    serialCommand.trim();
-    Serial.flush();
+        // Read the incoming command
+        serialCommand = Serial.readString();
+        serialCommand.trim();
+        Serial.flush();
 
-    PLV_DEBUG_(F("\nCommand received: "));
-    PLV_DEBUG(serialCommand);
-
-    if (serialCommand == "help") {
-        printCommands();
-
-    } else if (serialCommand == "reset") {
-        fullReset();
-
-    } else if (serialCommand == "status") {
-        printSystemStatus();
-
-    } else if (serialCommand == "resetwifi") {
-        resetWiFiSettings();
-
-    } else if (serialCommand == "filelist") {
-        pluvion.FSPrintFileList();
-
-    } else if (serialCommand == "fsformat") {
-        pluvion.FSFormat();
-
-    } else if (serialCommand == "cleardatadir") {
-
-        PLV_DEBUG_HEADER(F("DELETING WEATHER DATA"));
-        pluvion.FSDeleteFiles(DIR_WEATHER_DATA);
-        
-
-    } else if (serialCommand == "fsstatus") {
-        printFileSystemStatus();
-
-    } else if (serialCommand == "dump") {
-        dump();
-
-    } else if (serialCommand == "deletedata") {
-        deleteWeatherData();
-
-    } else {
-
-        PLV_DEBUG_(F("ERROR! Command not recognized: "));
+        PLV_DEBUG_(F("\nCommand received: "));
         PLV_DEBUG(serialCommand);
-    
-        printCommands();
 
-    }
+        if (serialCommand == "help")
+        {
+            printCommands();
+        }
+        else if (serialCommand == "reset")
+        {
+            fullReset();
+        }
+        else if (serialCommand == "status")
+        {
+            printSystemStatus();
+        }
+        else if (serialCommand == "resetwifi")
+        {
+            resetWiFiSettings();
+        }
+        else if (serialCommand == "filelist")
+        {
+            pluvion.FSPrintFileList();
+        }
+        else if (serialCommand == "fsformat")
+        {
+            pluvion.FSFormat();
+        }
+        else if (serialCommand == "cleardatadir")
+        {
+
+            PLV_DEBUG_HEADER(F("DELETING WEATHER DATA"));
+            pluvion.FSDeleteFiles(DIR_WEATHER_DATA);
+        }
+        else if (serialCommand == "fsstatus")
+        {
+            printFileSystemStatus();
+        }
+        else if (serialCommand == "dump")
+        {
+            dump();
+        }
+        else if (serialCommand == "deletedata")
+        {
+            deleteWeatherData();
+        }
+        else
+        {
+
+            PLV_DEBUG_(F("ERROR! Command not recognized: "));
+            PLV_DEBUG(serialCommand);
+
+            printCommands();
+        }
     }
 }
 
 /**
  * Initialize DHT Sensor
  */
-void initDHTSensor() {
+void initDHTSensor()
+{
     dht.begin();
 }
 
 /**
  * Reads the hall sensor (tip bucket)
  */
-void countTipBucket() {
+void countTipBucket()
+{
 
     tipCounter++;
 
@@ -803,44 +903,49 @@ void countTipBucket() {
 /**
  * Reset all rain indicators
  */
-void resetRainIndicators() {
+void resetRainIndicators()
+{
 
     PLV_DEBUG_HEADER(F("RESET RAIN INDICATORS"));
 
-    resetFlag    = true;
-    tipCounter   = 0;
+    resetFlag = true;
+    tipCounter = 0;
     lastTipCount = 0;
     realTipCount = 0;
-    rainVolume   = 0;
+    rainVolume = 0;
 }
 
 /**
  * Initialize Firmware Version
  */
-void initFirmwareVersion() {
+void initFirmwareVersion()
+{
 
     PLV_DEBUG_HEADER(F("INIT FIRMWARE VERSION"));
 
     pluvion.FSDeleteFiles(DIR_FIRMWARE_VERSION);
     pluvion.FSCreateFile(DIR_FIRMWARE_VERSION, FIRMWARE_VERSION);
 
-    PLV_DEBUG_(F("FIRMWARE VERSION: ")); PLV_DEBUG(FIRMWARE_VERSION);
+    PLV_DEBUG_(F("FIRMWARE VERSION: "));
+    PLV_DEBUG(FIRMWARE_VERSION);
 }
 
 /**
  * Initialize Station ID
  */
-void initStationID() {
+void initStationID()
+{
 
     PLV_DEBUG_HEADER(F("INIT STATION ID"));
 
     STATION_ID = pluvion.FSReadString(DIR_STATION_ID);
 
-    if(!STATION_ID.length()){
+    if (!STATION_ID.length())
+    {
 
         PLV_DEBUG(F("STATION ID not found.\nSetting STATION ID ..."));
 
-        STATION_ID  = STATION_ID_PREFIX;
+        STATION_ID = STATION_ID_PREFIX;
         STATION_ID += ESP.getChipId();
 
         pluvion.FSCreateFile(DIR_STATION_ID, STATION_ID);
@@ -853,19 +958,22 @@ void initStationID() {
 /**
  * Initialize Station Name
  */
-void initStationName(){
+void initStationName()
+{
 
     PLV_DEBUG_HEADER(F("INIT STATION NAME"));
 
     String sttName = pluvion.FSReadString(DIR_STATION_NAME);
 
     // If STATION NAME not found, set default
-    if(!sttName.length()) {
+    if (!sttName.length())
+    {
 
         PLV_DEBUG(F("STATION NAME not found.\nSetting default STATION NAME ..."));
         pluvion.FSCreateFile(DIR_STATION_NAME, STATION_NAME);
-
-    } else {
+    }
+    else
+    {
 
         STATION_NAME = sttName;
     }
@@ -877,11 +985,12 @@ void initStationName(){
 /**
  * Initialize Station Coordinates
  */
-void initStationCoordinates() {
+void initStationCoordinates()
+{
 
     PLV_DEBUG_HEADER(F("INIT STATION COORDINATES"));
 
-    STATION_LATITUDE  = pluvion.FSReadString(DIR_STATION_LATITUDE);
+    STATION_LATITUDE = pluvion.FSReadString(DIR_STATION_LATITUDE);
     STATION_LONGITUDE = pluvion.FSReadString(DIR_STATION_LONGITUDE);
 
     PLV_DEBUG_(F("STATION LATITUDE: "));
@@ -893,15 +1002,19 @@ void initStationCoordinates() {
 /**
  * Initialize Station Bucket Volume
  */
-void initBucketVolume() {
+void initBucketVolume()
+{
 
     PLV_DEBUG_HEADER(F("INIT BUCKET VOLUME"));
 
-    float vol  = pluvion.FSReadFloat(DIR_STATION_BUCKET_VOL);
+    float vol = pluvion.FSReadFloat(DIR_STATION_BUCKET_VOL);
 
-    if(vol) {
+    if (vol)
+    {
         PLV_STATION_BUCKET_VOLUME = vol;
-    } else {
+    }
+    else
+    {
         PLV_DEBUG(F("STATION BUCKET VOLUME not found.\nUsing default value..."));
     }
 
@@ -912,21 +1025,24 @@ void initBucketVolume() {
 /**
  * Initialize the system message counter with the value in disk or create it as 1
  */
-void initMessageID() {
+void initMessageID()
+{
 
     PLV_DEBUG_HEADER(F("INITIALIZING SYSTEM MESSAGE COUNTER"));
 
     // Read message counter
     int counter = pluvion.FSReadInt(DIR_MESSAGE_COUNTER);
 
-    if (counter) {
+    if (counter)
+    {
 
         // Set the message counter
         messageID = counter;
     }
 
     // No message counter directory (first system boot)
-    else {
+    else
+    {
 
         PLV_DEBUG(F("Message Counter not found.\nInit counter ..."));
 
@@ -943,23 +1059,26 @@ void initMessageID() {
 /**
  * Initialize System Time (clock)
  */
-void initStationTime(){
+void initStationTime()
+{
 
     PLV_DEBUG_HEADER(F("INIT STATION TIME"));
 
     // Read System Time
-    unsigned long sttTime = pluvion.FSReadULong(DIR_STATION_TIME);
+    int sttTime = pluvion.FSReadInt(DIR_STATION_TIME);
 
-    if(sttTime){
+    if (sttTime)
+    {
 
         STATION_TIME = sttTime;
-
-    } else {
-
-        PLV_DEBUG(F("CRITICAL! STATION TIME not found.\nUsing millis() instead (bad)."));
-        STATION_TIME = millis();
     }
-    
+    else
+    {
+
+        PLV_DEBUG(F("CRITICAL! STATION TIME not found.\nUsing seconds() instead (bad)."));
+        STATION_TIME = seconds();
+    }
+
     PLV_DEBUG_(F("STATION TIME: "));
     PLV_DEBUG(STATION_TIME);
 }
@@ -967,18 +1086,21 @@ void initStationTime(){
 /**
  * Initialize System Time To Reset (count down)
  */
-void initTimeToReset(){
+void initTimeToReset()
+{
 
     PLV_DEBUG_HEADER(F("INIT TIME TO RESET"));
 
     // Read System Time To Reset
-    unsigned long ttr = pluvion.FSReadULong(DIR_STATION_TIME_TO_RESET);
+    int ttr = pluvion.FSReadULong(DIR_STATION_TIME_TO_RESET);
 
-    if(ttr){
+    if (ttr)
+    {
 
         TIME_TO_RESET = ttr;
-
-    } else {
+    }
+    else
+    {
 
         PLV_DEBUG(F("CRITICAL! STATION TIME TO RESET not found.\nUsing default time frame (24hrs) instead (bad)."));
         TIME_TO_RESET = DEFAULT_RESET_PERIOD;
@@ -991,12 +1113,13 @@ void initTimeToReset(){
 /**
  * Increment Station Time
  */
-void incrementStationTime() {
+void incrementStationTime()
+{
 
     PLV_DEBUG_HEADER(F("INCREMENTING STATION TIME"));
 
     // Add millis to current Station Time
-    STATION_TIME += millis();
+    STATION_TIME += seconds();
 
     // Remove old Station Time
     pluvion.FSDeleteFiles(DIR_STATION_TIME);
@@ -1008,14 +1131,16 @@ void incrementStationTime() {
 /**
  * Update Station Time
  */
-void updateStationTime(unsigned long sttTime) {
+void updateStationTime(int sttTime)
+{
 
     PLV_DEBUG_HEADER(F("UPDATING STATION TIME"));
 
     PLV_DEBUG_(F("STATION TIME RECEIVED: "));
     PLV_DEBUG(sttTime);
 
-    if(sttTime) {
+    if (sttTime)
+    {
 
         STATION_TIME = sttTime;
 
@@ -1033,11 +1158,13 @@ void updateStationTime(unsigned long sttTime) {
 /**
  * Update Station Time
  */
-void updateTimeToReset(unsigned long ttr) {
+void updateTimeToReset(int ttr)
+{
 
     PLV_DEBUG_HEADER(F("UPDATING TIME TO RESET"));
 
-    if(ttr){
+    if (ttr)
+    {
 
         TIME_TO_RESET = ttr;
 
@@ -1052,31 +1179,40 @@ void updateTimeToReset(unsigned long ttr) {
     PLV_DEBUG(TIME_TO_RESET);
 }
 
+int seconds()
+{
+    return millis() / 1000;
+}
+
 /**
  * Check if it' time to reset the system
  */
-void resetSystem() {
+void resetSystem()
+{
 
     // How does the reset system works...
     //  __________________________________________________> (time)
-    //  | start time          |||| millis()              |TIME_TO_RESET
+    //  | start time          |||| seconds()              |TIME_TO_RESET
     //  | init during setup
 
-    if((millis() - resetStartTime) >= TIME_TO_RESET) {
+    if ((seconds() - resetStartTime) >= TIME_TO_RESET)
+    {
 
         PLV_DEBUG(F("RESTARTING!"));
 
         // Set the reset target to 24 hours from now
-        resetStartTime = millis(); // counting from now
+        resetStartTime = seconds(); // counting from now
         resetCicleCounter = 0;
         TIME_TO_RESET = DEFAULT_RESET_PERIOD; // until 24 hours from now
         resetRainIndicators();
-        
-    } else {
+    }
+    else
+    {
         // Persist TIME TO RESET (in case of boot)
-        if((++resetCicleCounter % 2400000000) == 0){
-            TIME_TO_RESET = (TIME_TO_RESET - ((millis() - resetStartTime)));
-            resetCicleCounter=0;
+        if ((++resetCicleCounter % 2400000) == 0)
+        {
+            TIME_TO_RESET = (TIME_TO_RESET - ((seconds() - resetStartTime)));
+            resetCicleCounter = 0;
             updateTimeToReset(TIME_TO_RESET);
         }
     }
@@ -1085,7 +1221,8 @@ void resetSystem() {
 /**
  * thin Reset the system messsage counter file
  */
-void resetMessageID() {
+void resetMessageID()
+{
 
     PLV_DEBUG_HEADER(F("RESETTING MESSAGE ID"));
 
@@ -1098,7 +1235,8 @@ void resetMessageID() {
 /**
  * Remove the system messsage counter file
  */
-void removeMessageByID(int messageID) {
+void removeMessageByID(int messageID)
+{
 
     PLV_DEBUG_HEADER(F("REMOVE WEATHER MESSAGE LOCALLY BY ID"));
 
@@ -1109,7 +1247,8 @@ void removeMessageByID(int messageID) {
 /**
  * Increment Message Counter
  */
-void incrementMessageID() {
+void incrementMessageID()
+{
 
     PLV_DEBUG_HEADER(F("INCREMENTING MESSAGE COUNTER"));
 
@@ -1128,95 +1267,122 @@ void incrementMessageID() {
  * 
  * @return Message
  */
-String buildMessage() {
+String buildMessage()
+{
 
     PLV_DEBUG(F("Building Message..."));
 
     String message = "";
 
     // Message ID
-    message += messageID; message += FIELD_SEPARATOR;
+    message += messageID;
+    message += FIELD_SEPARATOR;
 
     // System Timestamp
-    message += STATION_TIME; message += FIELD_SEPARATOR;
+    message += STATION_TIME;
+    message += FIELD_SEPARATOR;
 
     // WEATHER INFORMATION ====================================
     // Rain Volume
-    message += rainVolume; message += FIELD_SEPARATOR;
+    message += rainVolume;
+    message += FIELD_SEPARATOR;
 
     // Hall Sensor - Tip Count
-    message += realTipCount; message += FIELD_SEPARATOR;
+    message += realTipCount;
+    message += FIELD_SEPARATOR;
 
     // DHT Sensor - Temperature in C
-    message += temperature; message += FIELD_SEPARATOR;
+    message += temperature;
+    message += FIELD_SEPARATOR;
 
     // DHT Sensor - Humidity in Percent
-    message += humidity; message += FIELD_SEPARATOR;
+    message += humidity;
+    message += FIELD_SEPARATOR;
 
     // DHT Sensor - Apparent Temperature (Computed Heat Index)
-    message += computedHeatIndex; message += FIELD_SEPARATOR;
+    message += computedHeatIndex;
+    message += FIELD_SEPARATOR;
 
     // CONFIGURATION INFORMATION ====================================
     // Station Id
-    message += STATION_ID; message += FIELD_SEPARATOR;
+    message += STATION_ID;
+    message += FIELD_SEPARATOR;
 
     // Station Name
-    message += STATION_NAME; message += FIELD_SEPARATOR;
+    message += STATION_NAME;
+    message += FIELD_SEPARATOR;
 
     // Latitude
-    message += STATION_LATITUDE; message += FIELD_SEPARATOR;
+    message += STATION_LATITUDE;
+    message += FIELD_SEPARATOR;
 
     // Longitude
-    message += STATION_LONGITUDE; message += FIELD_SEPARATOR;
+    message += STATION_LONGITUDE;
+    message += FIELD_SEPARATOR;
 
     // Bucket Volume in ml
-    message += PLV_STATION_BUCKET_VOLUME; message += FIELD_SEPARATOR;
+    message += PLV_STATION_BUCKET_VOLUME;
+    message += FIELD_SEPARATOR;
 
     // DHT Sensor - Reading Delay
-    message += DHT_SENSOR_READING_DELAY; message += FIELD_SEPARATOR;
+    message += DHT_SENSOR_READING_DELAY;
+    message += FIELD_SEPARATOR;
 
     // Hall Sensor - Reading Delay
-    message += DELAY_HALL_SENSOR_DEBOUNCING; message += FIELD_SEPARATOR;
+    message += DELAY_HALL_SENSOR_DEBOUNCING;
+    message += FIELD_SEPARATOR;
 
     // RUNTIME INFORMATION ====================================
     // Available Heap Space (bytes)
-    message += SYSAvailableHeapInBytes; message += FIELD_SEPARATOR;
+    message += SYSAvailableHeapInBytes;
+    message += FIELD_SEPARATOR;
 
     // Last Reset Reason
-    message += SYSLastResetReason; message += FIELD_SEPARATOR;
+    message += SYSLastResetReason;
+    message += FIELD_SEPARATOR;
 
     // Reset Flag
-    message += (resetFlag?"true":"false"); message += FIELD_SEPARATOR;
-    resetFlag=false;
+    message += (resetFlag ? "true" : "false");
+    message += FIELD_SEPARATOR;
+    resetFlag = false;
 
     // Time to next reset
-    message += TIME_TO_RESET; message += FIELD_SEPARATOR;
+    message += TIME_TO_RESET;
+    message += FIELD_SEPARATOR;
 
     // Firmware Version
-    message += FIRMWARE_VERSION; message += FIELD_SEPARATOR;
+    message += FIRMWARE_VERSION;
+    message += FIELD_SEPARATOR;
 
     // FILE SYSTEM INFORMATION ====================================
     // Available Disk Space (bytes)
-    message += SYSAvailableDiskSpaceInBytes; message += FIELD_SEPARATOR;
+    message += SYSAvailableDiskSpaceInBytes;
+    message += FIELD_SEPARATOR;
 
     // Available Disk Space (%)
-    message += SYSAvailableDiskSpaceInPercent; message += FIELD_SEPARATOR;
+    message += SYSAvailableDiskSpaceInPercent;
+    message += FIELD_SEPARATOR;
 
     // INFRASTRUCTURE - CONNECTIVITY ====================================
     // WiFi SSID
-    message += SYSWiFiSSID; message += FIELD_SEPARATOR;
+    message += SYSWiFiSSID;
+    message += FIELD_SEPARATOR;
 
     // WiFi LocalIp
-    message += SYSWiFiLocalIp; message += FIELD_SEPARATOR;
+    message += SYSWiFiLocalIp;
+    message += FIELD_SEPARATOR;
 
     // WiFi Hostname
-    message += SYSWiFiHostname; message += FIELD_SEPARATOR;
+    message += SYSWiFiHostname;
+    message += FIELD_SEPARATOR;
 
     // WiFi MACAddr
-    message += SYSWiFiMACAddr; message += FIELD_SEPARATOR;
+    message += SYSWiFiMACAddr;
+    message += FIELD_SEPARATOR;
 
     // WiFi RSSIindBm
-    message += SYSWiFiRSSIindBm; message += FIELD_SEPARATOR;
+    message += SYSWiFiRSSIindBm;
+    message += FIELD_SEPARATOR;
 
     // INFRASTRUCTURE - POWER SUPPLY ====================================
     // VCC (volts)
@@ -1233,7 +1399,8 @@ String buildMessage() {
 /**
  * Build the weather message and send to Pluvi.On API
  */
-void buildSaveAndSendMessage() {
+void buildSaveAndSendMessage()
+{
 
     PLV_DEBUG_HEADER(F("BUILD WEATHER MESSAGE AND SAVE"));
 
@@ -1259,7 +1426,8 @@ void buildSaveAndSendMessage() {
 /**
  * Post weather data to Pluvi.On API
  */
-void sendMessage(int messageID, String message) {
+void sendMessage(int messageID, String message)
+{
 
     PLV_DEBUG_HEADER(F("POST WEATHER TO PLUVION API"));
 
@@ -1272,26 +1440,32 @@ void sendMessage(int messageID, String message) {
     PLV_DEBUG(message);
 
     // Check Connection
-    while (!WIFISecureClient.connect(PLUVION_API_SERVER_ADDR, PLUVION_API_SERVER_PORT)) {
+    while (!WIFISecureClient.connect(PLUVION_API_SERVER_ADDR, PLUVION_API_SERVER_PORT))
+    {
         PLV_DEBUG(F("CONNECTION FAILED!"));
         return;
     }
 
     // Check Certificate Fingerprint
-    if (WIFISecureClient.verify(PLUVION_API_CERT_FINGERPRINT, PLUVION_API_SERVER_ADDR)) {
+    if (WIFISecureClient.verify(PLUVION_API_CERT_FINGERPRINT, PLUVION_API_SERVER_ADDR))
+    {
         PLV_DEBUG(F("SSL Certificate Fingerprint Match: PASSED"));
-    } else {
+    }
+    else
+    {
         PLV_DEBUG(F("SSL Certificate Fingerprint Match: ERROR!"));
+        return;
     }
 
     String requestHeader =
-    String("POST ") + PLUVION_API_RESOURCE_WEATHER + " HTTP/1.1" + HTTP_HEADER_EOL +
-    "Host: " + PLUVION_API_SERVER_ADDR + HTTP_HEADER_EOL +
-    HTTP_HEADER_USER_AGENT + HTTP_HEADER_EOL +
-    HTTP_HEADER_ACCEPT + HTTP_HEADER_EOL +
-    HTTP_HEADER_CONTENT_TYPE + HTTP_HEADER_EOL +
-    "Content-Length: " + message.length() + HTTP_HEADER_EOL +
-    "Connection: close" + HTTP_HEADER_EOL + HTTP_HEADER_EOL;
+        String("POST ") + PLUVION_API_RESOURCE_WEATHER + " HTTP/1.1" + HTTP_HEADER_EOL +
+        "Host: " + PLUVION_API_SERVER_ADDR + HTTP_HEADER_EOL +
+        HTTP_HEADER_USER_AGENT + HTTP_HEADER_EOL +
+        HTTP_HEADER_ACCEPT + HTTP_HEADER_EOL +
+        HTTP_HEADER_CONTENT_TYPE + HTTP_HEADER_EOL +
+        HTTP_HEADER_PLUVION_KEY + HTTP_HEADER_EOL +
+        "Content-Length: " + message.length() + HTTP_HEADER_EOL +
+        "Connection: close" + HTTP_HEADER_EOL + HTTP_HEADER_EOL;
 
     PLV_DEBUG(F("Request Header:"));
     PLV_DEBUG(requestHeader);
@@ -1310,17 +1484,21 @@ void sendMessage(int messageID, String message) {
     String line = "";
     String response = "";
 
-    while (WIFISecureClient.connected()) {
-        if (WIFISecureClient.available()) {    
+    while (WIFISecureClient.connected())
+    {
+        if (WIFISecureClient.available())
+        {
             line = WIFISecureClient.readStringUntil('\r');
             PLV_DEBUG_(line);
-            
+
             // Body
-            if (line == "\n") {
+            if (line == "\n")
+            {
                 section = 'r';
             }
-            
-            if (section == 'r' && line.length() > 1) {
+
+            if (section == 'r' && line.length() > 1)
+            {
                 response += line.substring(1);
             }
         }
@@ -1336,7 +1514,8 @@ void sendMessage(int messageID, String message) {
 /**
  * Process server response
  */
-void processResponse(int messageID, String response) {
+void processResponse(int messageID, String response)
+{
 
     PLV_DEBUG_HEADER(F("PROCESS RESPONSE"));
 
@@ -1346,17 +1525,18 @@ void processResponse(int messageID, String response) {
     PLV_DEBUG_(F("Response:  "));
     PLV_DEBUG(response);
 
-    if (response.length() < 1 || response.indexOf('|') == -1) {
+    if (response.length() < 1 || response.indexOf('|') == -1)
+    {
         PLV_DEBUG(F("Response empty! Nothing to do, keep walking :)"));
         return;
     }
 
     // Get response as char array
-    char* res = (char*)response.c_str();
+    char *res = (char *)response.c_str();
 
-    // Read each command pair 
-    char* msg = strtok(res, "|");
-    int index=0;
+    // Read each command pair
+    char *msg = strtok(res, "|");
+    int index = 0;
 
     do
     {
@@ -1364,13 +1544,17 @@ void processResponse(int messageID, String response) {
         PLV_DEBUG_(index);
         PLV_DEBUG_(F("] "));
         PLV_DEBUG(msg);
-    
+
         // 0 - Result
-        if(index == 0) {
+        if (index == 0)
+        {
 
-            PLV_DEBUG_(F("Request Result: [")); PLV_DEBUG_(msg); PLV_DEBUG(F("]"));
+            PLV_DEBUG_(F("Request Result: ["));
+            PLV_DEBUG_(msg);
+            PLV_DEBUG(F("]"));
 
-            if (String(msg) == "ok") {
+            if (String(msg) == "ok")
+            {
                 // Remove local file
                 removeMessageByID(messageID);
             }
@@ -1378,48 +1562,56 @@ void processResponse(int messageID, String response) {
         }
 
         // 1 - System Time in millis
-        if(index == 1){
+        if (index == 1)
+        {
 
-            PLV_DEBUG_(F("Server time: ")); PLV_DEBUG(msg);
-            updateStationTime(strtoul(msg, NULL, 10));
+            PLV_DEBUG_(F("Server time: "));
+            PLV_DEBUG(msg);
+            updateStationTime(atoi(msg));
 
             continue;
         }
-    
+
         // 2 - Time to Reset System
-        if(index == 2){
+        if (index == 2)
+        {
 
-            PLV_DEBUG_(F("Time to reset: ")); PLV_DEBUG(msg);
-            resetStartTime = millis();
-            updateTimeToReset(strtoul(msg, NULL, 10));
+            PLV_DEBUG_(F("Time to reset: "));
+            PLV_DEBUG(msg);
+            resetStartTime = seconds();
+            updateTimeToReset(atoi(msg));
 
             continue;
         }
-    
-        // 3 - Server Command
-        if(index == 3){
 
-            PLV_DEBUG_(F("Server Command: ")); PLV_DEBUG(msg);
-            
-            if (msg == "reset") {
+        // 3 - Server Command
+        if (index == 3)
+        {
+
+            PLV_DEBUG_(F("Server Command: "));
+            PLV_DEBUG(msg);
+
+            if (msg == "reset")
+            {
                 // Reset Appliance
                 PLV_DEBUG(F("RESET !!!!"));
                 resetRainIndicators();
             }
-            
+
             continue;
         }
 
     } while (
         (msg = strtok(0, "|")) // Find the next command in input string
-        && ++index // Increment the command index
-    );
+        && ++index             // Increment the command index
+        );
 }
 
 /**
  * Write weather data to file system
  */
-boolean saveMessage(int messageID, String message) {
+boolean saveMessage(int messageID, String message)
+{
 
     PLV_DEBUG_HEADER(F("SAVE WEATHER DATA LOCALLY"));
 
@@ -1430,31 +1622,34 @@ boolean saveMessage(int messageID, String message) {
 /**
  * Read DHT Sensor
  */
-void readDHTSensor() {
+void readDHTSensor()
+{
 
     // Current millis mark
     currentDHTReadingInMillis = millis();
 
     // Check if the past reading has failed and the time
     if (
-        DHTSensorReadingFailure && // Fail
+        DHTSensorReadingFailure &&                                                                    // Fail
         ((currentDHTReadingInMillis - lastDHTReadingInMillis) >= DHT_SENSOR_READING_FAILURE_DELAY) && // The time hasn' passed yet
-        (DHTSensorFailedReadingAttempts <= DHT_SENSOR_READING_FAILURE_ATTEMPTS_LIMIT) // Number of attempts
-    ) {
-    
+        (DHTSensorFailedReadingAttempts <= DHT_SENSOR_READING_FAILURE_ATTEMPTS_LIMIT)                 // Number of attempts
+        )
+    {
+
         PLV_DEBUG(F("DHT SENSOR READING ON FAILURE!"));
         PLV_DEBUG_(F("DHTSensorFailedReadingAttempts: "));
         PLV_DEBUG(DHTSensorFailedReadingAttempts);
-    
+
         DHTSensorFailedReadingAttempts++;
         getDHTData();
-    
+
         // Build the weather message and send to Pluvi.On API
         buildSaveAndSendMessage();
     }
 
     // Check if the configured delay has passed
-    if ((currentDHTReadingInMillis - lastDHTReadingInMillis) >= DHT_SENSOR_READING_DELAY) {
+    if ((currentDHTReadingInMillis - lastDHTReadingInMillis) >= DHT_SENSOR_READING_DELAY)
+    {
 
         getDHTData();
 
@@ -1466,7 +1661,8 @@ void readDHTSensor() {
 /**
  * Get DHT Data
  */
-void getDHTData() {
+void getDHTData()
+{
 
     PLV_DEBUG_HEADER(F("DHT SENSOR READINGS"));
 
@@ -1478,7 +1674,8 @@ void getDHTData() {
     temperature = dht.readTemperature();
 
     // Check if any reads failed and exit early (to try again).
-    if (isnan(humidity) || isnan(temperature)) {
+    if (isnan(humidity) || isnan(temperature))
+    {
 
         PLV_DEBUG(F("ERROR! Failed to read from DHT sensor!"));
 
@@ -1486,8 +1683,8 @@ void getDHTData() {
         DHTSensorReadingFailure = true;
 
         // Fix humidity, temperature and computed heat index
-        humidity = isnan(humidity)? -999:humidity;
-        temperature = isnan(temperature)? -999:temperature;
+        humidity = isnan(humidity) ? -999 : humidity;
+        temperature = isnan(temperature) ? -999 : temperature;
         computedHeatIndex = -999;
 
         // Store the current millis for the next iteration
@@ -1531,7 +1728,8 @@ void getDHTData() {
 /**
  * Reads the hall sensor (tip bucket)
  */
-void readHallSensor() {
+void readHallSensor()
+{
 
     // Current millis mark
     currentTipBucketReadingInMillis = millis();
@@ -1539,26 +1737,28 @@ void readHallSensor() {
     // Check if the configured delay has passed
     if (
         ((currentTipBucketReadingInMillis - lastTipBucketReadingInMillis) >= DELAY_HALL_SENSOR_DEBOUNCING) || // delay
-        (lastTipBucketReadingInMillis == 0) // first time
-    ) {
+        (lastTipBucketReadingInMillis == 0)                                                                   // first time
+        )
+    {
         // Disable interrupt when calculating
         detachInterrupt(PIN_HALL);
 
         // Any increment since the last time?
-        if (tipCounter > lastTipCount) {
+        if (tipCounter > lastTipCount)
+        {
 
             // Increase the tip bucket count
             realTipCount++;
-    
+
             // Update last tip counter value
             lastTipCount = tipCounter;
-    
+
             // Calculate the rain volume, converting tips into mm
             rainVolume = realTipCount * PLV_STATION_BUCKET_VOLUME * 1000 / CONTRIBUTION_AREA;
-    
+
             // Get DHT Sensor Data
             getDHTData();
-    
+
             // Build the weather message and send to Pluvi.On API
             buildSaveAndSendMessage();
         }
@@ -1574,7 +1774,8 @@ void readHallSensor() {
 /**
  * Reset module WiFi Settings
  */
-void resetWiFiSettings() {
+void resetWiFiSettings()
+{
 
     PLV_DEBUG_HEADER(F("RESETTING WIFI SETTINGS"));
 
@@ -1586,12 +1787,21 @@ void resetWiFiSettings() {
 /**
  * Setup WiFi module
  */
-void setupWiFiModule() {
+void setupWiFiModule()
+{
 
     PLV_DEBUG_HEADER(F("SETUP WIFI MODULE"));
 
-    int count=0;
-    while(true){
+    int count = 0;
+    while (true)
+    {
+
+        if (count++ > WIFI_CONN_COUNTER)
+        {
+            // Connect to WiFi
+            wifiManager.autoConnect(STATION_ID.c_str());
+            break;
+        }
 
         PLV_DEBUG(F("Connecting... "));
 
@@ -1603,39 +1813,39 @@ void setupWiFiModule() {
         WiFi.begin(WiFi.SSID().c_str(), WiFi.psk().c_str());
 
         PLV_DEBUG_(F("Status: "));
-        if (WiFi.status() == WL_CONNECTED) {
+        if (WiFi.status() == WL_CONNECTED)
+        {
             PLV_DEBUG(F("CONNECTED - Wi-Fi connection successful established."));
             break;
-        } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
+        }
+        else if (WiFi.status() == WL_NO_SSID_AVAIL)
+        {
             PLV_DEBUG(F("NO SSID AVAILABLE - Configured SSID cannot be reached."));
             wifiManager.autoConnect(STATION_ID.c_str());
-
-        } else if (WiFi.status() == WL_CONNECT_FAILED) {
+        }
+        else if (WiFi.status() == WL_CONNECT_FAILED)
+        {
             PLV_DEBUG(F("CONNECT FAILED - Password is incorrect."));
             wifiManager.autoConnect(STATION_ID.c_str());
-
-        } else if (WiFi.status() == WL_IDLE_STATUS) {
+        }
+        else if (WiFi.status() == WL_IDLE_STATUS)
+        {
             PLV_DEBUG(F("IDLE STATUS - Wi-Fi is in process of changing between statuses."));
-
-        } else if (WiFi.status() == WL_DISCONNECTED) {
+        }
+        else if (WiFi.status() == WL_DISCONNECTED)
+        {
             PLV_DEBUG(F("DISCONNECTED - Wi-Fi module is not configured in station mode."));
         }
 
         delay(WIFI_CONN_DELAY);
-
-        if(count++ > WIFI_CONN_COUNTER){
-            // Connect to WiFi
-            wifiManager.autoConnect(STATION_ID.c_str());
-            break;
-        }
     }
 }
-
 
 /**
  * Connect to WiFi Network
  */
-void connectWiFi(){
+void connectWiFi()
+{
 
     PLV_DEBUG_HEADER(F("CONNECTING TO WIFI"));
 
@@ -1648,12 +1858,13 @@ void connectWiFi(){
 /**
  * Disconnect from WiFi Network
  */
-void disconnectWiFi(){
+void disconnectWiFi()
+{
 
     PLV_DEBUG_HEADER(F("DISCONNECTING FROM WIFI"));
 
     // Disconnect WiFi
-    
+
     wifi_station_disconnect();
 
     printSystemWiFiStatus();
@@ -1662,7 +1873,8 @@ void disconnectWiFi(){
 /**
  * System SETUP
  */
-void setup() {
+void setup()
+{
 
     // Init the Serial
     PLV_DEBUG_SETUP(PLV_SYSTEM_BAUDRATE);
@@ -1704,7 +1916,8 @@ void setup() {
 /**
  * System main loop function
  */
-void loop() {
+void loop()
+{
 
     // Enables command on serial
     readSerialCommands();
