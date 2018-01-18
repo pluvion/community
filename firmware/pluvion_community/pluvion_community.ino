@@ -2,7 +2,7 @@
  * Pluvi.On WiFi Community Firmware
  * 
  *       FILE: pluvion_community_firwmware.ino
- *    VERSION: 0.0.2.C
+ *    VERSION: 0.0.3.C
  *    LICENSE: Creative Commons 4
  *    AUTHORS:
  *             Pedro Godoy <pedro@pluvion.com.br>
@@ -83,7 +83,7 @@ String STATION_NAME = "PluviOn";
 String STATION_ID = "";
 
 const String STATION_ID_PREFIX = "PluviOn_";
-const String FIRMWARE_VERSION = "0.0.2.C";
+const String FIRMWARE_VERSION = "0.0.3.C";
 
 /**
  * File system directories and variables
@@ -175,7 +175,6 @@ const char *PLUVION_API_SERVER_ADDR = "api.community.pluvion.com.br";
 const char *PLUVION_API_RESOURCE_WEATHER = "/weather";
 const int PLUVION_API_SERVER_PORT = 443;
 const int PLUVION_API_SERVER_REQ_TIMEOUT = 5000; // Request Timeout (ms)
-const char *PLUVION_API_CERT_FINGERPRINT = "5927C546989FE7761C626D8AE5959D0757A33963";
 
 // Pluvi.On Media Types Standard
 const String HTTP_HEADER_PLUVION_KEY = "X-PluviOn-Key: " + PLUVION_KEY;
@@ -275,8 +274,6 @@ void printSystemConfigurations()
     PLV_DEBUG(PLUVION_API_SERVER_ADDR);
     PLV_DEBUG_(F("API Server Port:                         "));
     PLV_DEBUG(PLUVION_API_SERVER_PORT);
-    PLV_DEBUG_(F("API Server SSL Certificate Fingerprint:  "));
-    PLV_DEBUG(PLUVION_API_CERT_FINGERPRINT);
     PLV_DEBUG_(F("API Server Request Timeout Limit (ms):   "));
     PLV_DEBUG(PLUVION_API_SERVER_REQ_TIMEOUT);
     PLV_DEBUG(F("API Server Resources in use:              "));
@@ -1443,17 +1440,6 @@ void sendMessage(int messageID, String message)
     while (!WIFISecureClient.connect(PLUVION_API_SERVER_ADDR, PLUVION_API_SERVER_PORT))
     {
         PLV_DEBUG(F("CONNECTION FAILED!"));
-        return;
-    }
-
-    // Check Certificate Fingerprint
-    if (WIFISecureClient.verify(PLUVION_API_CERT_FINGERPRINT, PLUVION_API_SERVER_ADDR))
-    {
-        PLV_DEBUG(F("SSL Certificate Fingerprint Match: PASSED"));
-    }
-    else
-    {
-        PLV_DEBUG(F("SSL Certificate Fingerprint Match: ERROR!"));
         return;
     }
 
