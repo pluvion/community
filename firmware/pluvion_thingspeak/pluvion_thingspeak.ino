@@ -162,7 +162,7 @@ WiFiClient client;
 WiFiManager wifiManager;
 
 // Time to try
-#define WIFI_CONN_COUNTER 4
+#define WIFI_CONN_COUNTER 1
 // Delay to connect to WiFi (WIFI_CONN_DELAY X WIFI_CONN_COUNTER = time to access point mode)
 #define WIFI_CONN_DELAY 30000
 
@@ -175,7 +175,7 @@ const int PLUVION_API_SERVER_PORT = 443;
 const int PLUVION_API_SERVER_REQ_TIMEOUT = 5000; // Request Timeout (ms)
 
 // Pluvi.On Media Types Standard
-const String HTTP_HEADER_PLUVION_KEY = "X-PluviOn-Key: " + PLUVION_KEY;
+//const String HTTP_HEADER_PLUVION_KEY = "X-PluviOn-Key: " + PLUVION_KEY;
 const char *HTTP_HEADER_ACCEPT = "Accept: application/vnd.community.pluvion.com.br.v1.text";
 const char *HTTP_HEADER_CONTENT_TYPE = "Content-Type: application/vnd.community.pluvion.com.br.v1.text";
 const char *HTTP_HEADER_EOL = "\r\n";
@@ -1447,7 +1447,7 @@ void sendMessage(int messageID, String message)
         HTTP_HEADER_USER_AGENT + HTTP_HEADER_EOL +
         HTTP_HEADER_ACCEPT + HTTP_HEADER_EOL +
         HTTP_HEADER_CONTENT_TYPE + HTTP_HEADER_EOL +
-        HTTP_HEADER_PLUVION_KEY + HTTP_HEADER_EOL +
+//        HTTP_HEADER_PLUVION_KEY + HTTP_HEADER_EOL +
         "Content-Length: " + message.length() + HTTP_HEADER_EOL +
         "Connection: close" + HTTP_HEADER_EOL + HTTP_HEADER_EOL;
 
